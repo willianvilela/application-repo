@@ -7,16 +7,23 @@ on:
 jobs:
   ci-checks:
     uses: org/templates-repo/.github/workflows/ci-template.yml@main
+    permissions:
+      contents: read
     with:
       enable_tests: true
 
   security-scan:
     needs: ci-checks
     uses: org/templates-repo/.github/workflows/security-template.yml@main
+    permissions:
+      contents: read
 
   build-push:
     needs: security-scan
     uses: org/templates-repo/.github/workflows/build-template.yml@main
+    permissions:
+      contents: read
+      packages: write
     with:
       image_name: "my-app"
 
@@ -24,6 +31,8 @@ jobs:
     needs: build-push
     if: github.ref == 'refs/heads/develop'
     uses: org/templates-repo/.github/workflows/deploy-template.yml@main
+    permissions:
+      contents: write  # ✅ Necessário para push no repo de manifests
     with:
       environment: "staging"
       argocd_app: "app-staging"
@@ -32,6 +41,8 @@ jobs:
     needs: build-push
     if: github.ref == 'refs/heads/main'
     uses: org/templates-repo/.github/workflows/deploy-template.yml@main
+    permissions:
+      contents: write  # ✅ Necessário para push no repo de manifests
     with:
       environment: "production"
       argocd_app: "app-production"
