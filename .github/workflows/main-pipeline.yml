@@ -1,0 +1,37 @@
+name: Main Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  ci-checks:
+    uses: org/templates-repo/.github/workflows/ci-template.yml@main
+    with:
+      enable_tests: true
+
+  security-scan:
+    needs: ci-checks
+    uses: org/templates-repo/.github/workflows/security-template.yml@main
+
+  build-push:
+    needs: security-scan
+    uses: org/templates-repo/.github/workflows/build-template.yml@main
+    with:
+      image_name: "my-app"
+
+  deploy-staging:
+    needs: build-push
+    if: github.ref == 'refs/heads/develop'
+    uses: org/templates-repo/.github/workflows/deploy-template.yml@main
+    with:
+      environment: "staging"
+      argocd_app: "app-staging"
+
+  deploy-production:
+    needs: build-push
+    if: github.ref == 'refs/heads/main'
+    uses: org/templates-repo/.github/workflows/deploy-template.yml@main
+    with:
+      environment: "production"
+      argocd_app: "app-production"
