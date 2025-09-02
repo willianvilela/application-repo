@@ -3,36 +3,40 @@ name: Main Pipeline
 on:
   push:
     branches: [main, develop]
+  workflow_dispatch:
+
+# 🔐 Permissões globais para o workflow
+permissions:
+  contents: read
+  actions: read
 
 jobs:
   ci-checks:
     uses: org/templates-repo/.github/workflows/ci-template.yml@main
-    permissions:
-      contents: read
+    secrets: inherit
     with:
       enable_tests: true
 
   security-scan:
     needs: ci-checks
     uses: org/templates-repo/.github/workflows/security-template.yml@main
-    permissions:
-      contents: read
+    secrets: inherit
 
   build-push:
     needs: security-scan
     uses: org/templates-repo/.github/workflows/build-template.yml@main
-    permissions:
-      contents: read
-      packages: write
+    secrets: inherit
     with:
       image_name: "my-app"
+      push_to_production: ${{ github.ref == 'refs/heads/main' }}
 
   deploy-staging:
     needs: build-push
     if: github.ref == 'refs/heads/develop'
     uses: org/templates-repo/.github/workflows/deploy-template.yml@main
+    secrets: inherit
     permissions:
-      contents: write  # ✅ Necessário para push no repo de manifests
+      contents: write  # 🔐 Permissão específica para deploy
     with:
       environment: "staging"
       argocd_app: "app-staging"
@@ -41,8 +45,9 @@ jobs:
     needs: build-push
     if: github.ref == 'refs/heads/main'
     uses: org/templates-repo/.github/workflows/deploy-template.yml@main
+    secrets: inherit
     permissions:
-      contents: write  # ✅ Necessário para push no repo de manifests
+      contents: write 
     with:
       environment: "production"
       argocd_app: "app-production"
